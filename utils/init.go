@@ -1,7 +1,7 @@
 package utils
 
-func Init() {
-	InitConfig()
-	InitMySQL()
-	InitRedis()
-}
+//func Init() {
+//	InitConfig()
+//	InitMySQL()
+//	InitRedis()
+//}
