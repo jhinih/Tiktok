@@ -11,7 +11,7 @@ import (
 )
 
 func Index(c *gin.Context) {
-	c.Redirect(http.StatusMovedPermanently, "https://101f26e7.r17.cpolar.top/")
+	//c.Redirect(http.StatusMovedPermanently, "https://21f3a408.r17.cpolar.top")
 }
 
 // SendCode 发送验证码
@@ -48,6 +48,9 @@ func Login(c *gin.Context) {
 	zlog.CtxInfof(ctx, "登录请求: %v", req)
 	resp, err := logic.NewLoginLogic().Login(ctx, req)
 	response.Response(c, resp, err)
+}
+func Loginpage(c *gin.Context) {
+	c.HTML(http.StatusOK, "login.html", nil)
 }
 
 // RefreshToken 刷新token

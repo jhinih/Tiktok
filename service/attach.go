@@ -32,7 +32,7 @@ func UploadLocal(c *gin.Context) {
 		suffix = "." + tem[len(tem)-1]
 	}
 	fileName := fmt.Sprintf("%d%04d%s", time.Now().Unix(), rand.Int31(), suffix)
-	dstFile, err := os.Create("./asset/upload/" + fileName)
+	dstFile, err := os.Create("./uploads/asset/" + fileName)
 	if err != nil {
 		utils.RespFail(w, err.Error())
 	}
@@ -40,7 +40,7 @@ func UploadLocal(c *gin.Context) {
 	if err != nil {
 		utils.RespFail(w, err.Error())
 	}
-	url := "./asset/upload/" + fileName
+	url := "./uploads/asset/" + fileName
 	utils.RespOK(w, url, "发送图片成功")
 }
 

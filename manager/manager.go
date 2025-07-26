@@ -1,8 +1,9 @@
 package manager
 
 import (
+	"Tiktok/log/zlog"
 	"Tiktok/middleware"
-	"github.com/gin-contrib/requestid"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -22,13 +23,15 @@ type Middleware func() gin.HandlerFunc
 // 采用组合模式，将不同业务领域的路由组组合在一起
 // 每个字段代表一个独立的业务功能模块的路由组
 type RouteManager struct {
-	LoginRoutes   *gin.RouterGroup // 登录相关的路由组，处理用户认证相关请求
-	CommonRoutes  *gin.RouterGroup // 通用功能相关的路由组，处理跨业务模块的通用功能
-	UserRoutes    *gin.RouterGroup // 用户相关的路由组，处理用户信息管理相关请求
-	MessageRoutes *gin.RouterGroup // 消息相关的路由组，处理消息通知相关功能
-	PostRoutes    *gin.RouterGroup // 帖子相关的路由组，处理帖子内容管理
-	FileRoutes    *gin.RouterGroup // 文件相关的路由组，处理文件上传下载
-	ContestRoutes *gin.RouterGroup // 竞赛相关的路由组，处理竞赛功能
+	LoginRoutes         *gin.RouterGroup // 登录相关的路由组，处理用户认证相关请求
+	CommonRoutes        *gin.RouterGroup // 通用功能相关的路由组，处理跨业务模块的通用功能
+	UserRoutes          *gin.RouterGroup // 用户相关的路由组，处理用户信息管理相关请求
+	MessageRoutes       *gin.RouterGroup // 消息相关的路由组，处理消息通知相关功能
+	PostRoutes          *gin.RouterGroup // 帖子相关的路由组，处理帖子内容管理
+	FileRoutes          *gin.RouterGroup // 文件相关的路由组，处理文件上传下载
+	ContestRoutes       *gin.RouterGroup // 竞赛相关的路由组，处理竞赛功能
+	VideosRoutes        *gin.RouterGroup // 视频相关的路由组，处理视频功能
+	CommunicationRoutes *gin.RouterGroup // 交流相关的路由组，处理交流功能
 }
 
 // NewRouteManager 创建一个新的 RouteManager 实例，包含各业务功能的路由组
@@ -37,13 +40,15 @@ type RouteManager struct {
 // @return *RouteManager - 返回初始化好的路由管理器实例
 func NewRouteManager(router *gin.Engine) *RouteManager {
 	return &RouteManager{
-		LoginRoutes:   router.Group("/api/login"),  // 初始化登录路由组
-		CommonRoutes:  router.Group("/api/common"), // 通用功能相关的路由组
-		UserRoutes:    router.Group("/api/user"),   // 用户相关的路由组
-		MessageRoutes: router.Group("/api/message"),
-		PostRoutes:    router.Group("/api/post"),
-		FileRoutes:    router.Group("/api/file"),
-		ContestRoutes: router.Group("/api/contest"),
+		LoginRoutes:         router.Group("/api/login"),  // 初始化登录路由组
+		CommonRoutes:        router.Group("/api/common"), // 通用功能相关的路由组
+		UserRoutes:          router.Group("/api/user"),   // 用户相关的路由组
+		MessageRoutes:       router.Group("/api/message"),
+		PostRoutes:          router.Group("/api/post"),
+		FileRoutes:          router.Group("/api/file"),
+		ContestRoutes:       router.Group("/api/contest"),
+		VideosRoutes:        router.Group("/api/videos"),
+		CommunicationRoutes: router.Group("/api/communication"),
 	}
 }
 
@@ -89,6 +94,18 @@ func (rm *RouteManager) RegisterContestRoutes(handler PathHandler) {
 	handler(rm.ContestRoutes)
 }
 
+// RegisterVideosRoutes 注册视频相关的路由处理函数
+// @param handler PathHandler - 路由处理函数
+func (rm *RouteManager) RegisterVideosRoutes(handler PathHandler) {
+	handler(rm.VideosRoutes)
+}
+
+// RegisterCommunicationRoutes 注册视频相关的路由处理函数
+// @param handler PathHandler - 路由处理函数
+func (rm *RouteManager) RegisterCommunicationRoutes(handler PathHandler) {
+	handler(rm.CommunicationRoutes)
+}
+
 // RegisterMiddleware 根据组名为对应的路由组注册中间件
 // 策略模式的应用，根据不同的组名选择不同的路由组注册中间件
 // @param group string - 路由组名称，可选值: "login"、"common"、"user"等
@@ -109,6 +126,11 @@ func (rm *RouteManager) RegisterMiddleware(group string, middleware Middleware) 
 		rm.FileRoutes.Use(middleware())
 	case "contest":
 		rm.ContestRoutes.Use(middleware())
+	case "videos":
+		rm.VideosRoutes.Use(middleware())
+	case "communication":
+		rm.CommunicationRoutes.Use(middleware())
+
 	}
 }
 
@@ -116,7 +138,11 @@ func (rm *RouteManager) RegisterMiddleware(group string, middleware Middleware) 
 // 装饰器模式的应用，为所有路由添加通用的处理逻辑
 // @param r *gin.Engine - Gin框架的路由引擎实例
 func RequestGlobalMiddleware(r *gin.Engine) {
-	r.Use(requestid.New())         // 为每个请求添加唯一标识符
-	r.Use(middleware.AddTraceId()) // 添加链路追踪ID
-	r.Use(middleware.Cors())       // 添加跨域支持
+	// 添加带调试日志的CORS中间件
+	r.Use(func(c *gin.Context) {
+		zlog.Infof("Executing CORS middleware - Before handler")
+		middleware.Cors()(c)
+		c.Next()
+		zlog.Infof("Executing CORS middleware - After handler")
+	})
 }

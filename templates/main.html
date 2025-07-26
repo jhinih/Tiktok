@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>jhinih 注册</title>
+    <style>
+        body {
+            background: #f5f6fa;
+            font-family: 'Segoe UI', '微软雅黑', Arial, sans-serif;
+            color: #222;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 380px;
+            margin: 60px auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 36px 32px 28px 32px;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 28px;
+            color: #2d8cf0;
+            letter-spacing: 2px;
+        }
+        form p {
+            margin: 18px 0 0 0;
+            display: flex;
+            align-items: center;
+        }
+        label {
+            flex: 0 0 60px;
+            font-size: 15px;
+        }
+        input[type="text"], input[type="password"] {
+            flex: 1;
+            padding: 8px 10px;
+            border: 1px solid #dcdfe6;
+            border-radius: 5px;
+            font-size: 15px;
+            transition: border 0.2s;
+            outline: none;
+        }
+        input[type="text"]:focus, input[type="password"]:focus {
+            border-color: #2d8cf0;
+        }
+        .code-btn {
+            margin-left: 8px;
+            padding: 6px 14px;
+            background: #2d8cf0;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .code-btn:hover {
+            background: #1765ad;
+        }
+        button[type="submit"] {
+            width: 100%;
+            margin-top: 28px;
+            padding: 10px 0;
+            background: linear-gradient(90deg, #2d8cf0 60%, #57a3f3 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+            letter-spacing: 2px;
+            transition: background 0.2s;
+        }
+        button[type="submit"]:hover {
+            background: #1765ad;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>welcome to jhinih</h1>
+    <form id="signupForm" action="/api/login/register" method="post">
+        <p>
+            <label for="email">邮箱</label>
+            <input type="text" name="email" id="email" required />
+            <button type="button" class="code-btn" id="sendCodeBtn">发送验证码</button>
+        </p>
+        <p>
+            <label for="code">验证码</label>
+            <input type="text" name="code" id="code" required />
+        </p>
+        <p>
+            <label for="password">密码</label>
+            <input type="password" name="password" id="password" required />
+        </p>
+        <p>
+            <label for="passwordconfirm">确认</label>
+            <input type="password" name="passwordconfirm" id="passwordconfirm" required />
+        </p>
+        <button type="submit">注册</button>
+    </form>
+</div>
+
+<script>
+    /* 发送验证码 */
+    document.getElementById('sendCodeBtn').addEventListener('click', () => {
+        const email = document.getElementById('email').value.trim();
+        if (!email) {
+            alert('请先填写邮箱');
+            return;
+        }
+        fetch('/api/login/send-code', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({email})
+        })
+            .then(r => r.json())
+            .then(res => {
+                if (res.ok!==false) {
+                    alert('验证码已发送，请注意查收');
+                } else {
+                    alert('发送失败');
+                }
+            })
+            .catch(() => alert('网络异常'));
+    });
+
+    /* 注册成功后跳转 */
+    document.getElementById('signupForm').addEventListener('submit', async (e) => {
+        e.preventDefault();                       // 阻止原生提交
+        const fd = new FormData(e.target);
+        const data = Object.fromEntries(fd.entries());
+        data.username = data.email;
+        if (data.password !== data.passwordconfirm) {
+            alert('两次密码不一致');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/login/register', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(data)
+            }).then(r => r.json());
+            if (res.ok!==false) {
+                alert('注册成功，即将跳转首页');
+                location.href = 'login.html';
+            // window.location.href = 'https://21f3a408.r17.cpolar.top';
+            //     const res1 = await fetch('/api/login/loginpage', {
+            //         method: 'GET',
+            //         headers: {'Content-Type': 'application/json'},
+            //         body: JSON.stringify(data)
+            //     }).then(r => r.json());
+            } else {
+                alert(res.msg || '注册失败');
+            }
+        } catch {
+            alert('网络异常');
+        }
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/html">
+<head>
+  <meta charset="UTF-8">
+  <title>jhinih登录</title>
+  <script src="/static/js/login.js"></script>
+
+  <style>
+    .button {
+      display: inline-block;
+      padding: 10px 20px;
+      font-size: 16px;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      outline: none;
+      color: #fff;
+      background-color: #4CAF50;
+      border: none;
+      border-radius: 15px;
+      box-shadow: 0 9px #999;
+    }
+
+    .button:hover {background-color: #3e8e41}
+
+    .button:active {
+      background-color: #3e8e41;
+      box-shadow: 0 5px #666;
+      transform: translateY(4px);
+    }
+  </style>
+</head>
+<body>
+
+<h1>jhinih</h1>
+<form action="/api/login/login" method="post">
+  <p>邮箱<input type="text" name="email"> </p>
+  <p>密码<input type="text" name="password"> </p>
+  <!--  <button type="submit"> 登录 </button>-->
+  <!--  <a href="http://localhost:8081/users/info" class="button">登录</a>-->
+  <button type="submit" class="button">登录</button>
+</form>
+<script>
+  /* 拦截表单提交，用 fetch 发送，成功后跳转首页 */
+  document.querySelector('form').addEventListener('submit', async (e) => {
+    e.preventDefault();                       // 阻止默认提交
+    const fd = new FormData(e.target);
+    const data = Object.fromEntries(fd.entries());
+
+    try {
+      const res = await fetch('/api/login/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(data)
+      }).then(r => r.json());
+      if (res.ok!==false) {
+        alert('登录成功，即将返回首页');
+        const res = await fetch('/api/post/Tiktokpage', {
+          method: 'GET',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(data)
+        }).then(r => r.json());
+      } else {
+        alert(res.msg || '登录失败');
+      }
+    } catch {
+      alert('网络异常');
+    }
+  });
+</script>
+</body>
+</html>

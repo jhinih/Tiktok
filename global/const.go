@@ -7,7 +7,7 @@ import (
 
 // 所有常量文件读取位置
 const (
-	DEFAULT_CONFIG_FILE_PATH = "/config.yaml"
+	DEFAULT_CONFIG_FILE_PATH = "/config/config.yaml"
 	ATOKEN_EFFECTIVE_TIME    = time.Hour * 2
 	//ATOKEN_EFFECTIVE_TIME = time.Second * 10
 

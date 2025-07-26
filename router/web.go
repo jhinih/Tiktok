@@ -8,10 +8,12 @@ import (
 	"Tiktok/manager"
 	"Tiktok/middleware"
 	"fmt"
+	"net/http"
+	"strings"
+	"time"
+
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
-	"net/http"
-	"time"
 )
 
 // RunServer 启动服务器 路由层
@@ -24,26 +26,70 @@ func RunServer() {
 	r.Run(fmt.Sprintf("%s:%d", configs.Conf.App.Host, configs.Conf.App.Port)) // 启动 Gin 服务器
 }
 
+// 自定义ResponseWriter类型
+type responseWriter struct {
+	gin.ResponseWriter
+	headers map[string]string
+}
+
+func (w *responseWriter) WriteHeader(code int) {
+	for k, v := range w.headers {
+		w.ResponseWriter.Header().Set(k, v)
+	}
+	w.ResponseWriter.WriteHeader(code)
+}
+
+func (w *responseWriter) Write(data []byte) (int, error) {
+	for k, v := range w.headers {
+		w.ResponseWriter.Header().Set(k, v)
+	}
+	return w.ResponseWriter.Write(data)
+}
+
 // listen 配置 Gin 服务器
 func listen() (*gin.Engine, error) {
-	r := gin.Default() // 创建默认的 Gin 引擎
+	r := gin.New()
 
-	//加载静态页面
-	r.LoadHTMLGlob("templates/*")
-	//加载资源文件
-	r.Static("/static", "./static")
+	// 强制在所有响应中添加CORS头
+	r.Use(func(c *gin.Context) {
+		origin := c.Request.Header.Get("Origin")
+		if origin == "" {
+			origin = "*"
+		}
 
-	// 注册全局中间件（例如获取 Trace ID）
+		// 设置CORS头
+		c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Max-Age", "86400")
+
+		// 处理OPTIONS请求
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	})
+
+	// 添加Recovery中间件
+	r.Use(gin.Recovery())
+
+	// 注册其他全局中间件
 	manager.RequestGlobalMiddleware(r)
-	//配置静态路由，用于访问上传的文件
-	//r.Static("/uploads", "uploads")
+
+	// 静态文件路由（支持视频播放）
+	r.Static("/uploads", "uploads")
+
+	// 添加视频响应头中间件
+	r.Use(func(c *gin.Context) {
+		if strings.HasSuffix(c.Request.URL.Path, ".mp4") {
+			c.Header("Content-Type", "video/mp4")
+			c.Header("Accept-Ranges", "bytes")
+		}
+	})
 	// 创建 RouteManager 实例
-	r.GET("/", func(c *gin.Context) {
-		c.HTML(http.StatusOK, "main.html", nil)
-	})
-	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "main.html", nil)
-	})
 	routeManager := manager.NewRouteManager(r)
 	// 注册各业务路由组的具体路由
 	registerRoutes(routeManager)
@@ -75,67 +121,52 @@ func registerRoutes(routeManager *manager.RouteManager) {
 		rg.POST("/send-code", middleware.Limiter(rate.Every(time.Minute)*4, 4), api.SendCode)
 		rg.POST("/register", middleware.Limiter(rate.Every(time.Minute)*4, 4), api.Register)
 		rg.POST("/login", middleware.Limiter(rate.Every(time.Minute)*4, 4), api.Login)
-		//rg.POST("/refresh-token", middleware.Limiter(rate.Every(time.Second)*4, 8), api.RefreshToken)
+		rg.GET("/loginpage", middleware.Limiter(rate.Every(time.Minute)*4, 4), api.Loginpage)
+		rg.POST("/refresh-token", middleware.Limiter(rate.Every(time.Second)*4, 8), api.RefreshToken)
 
 		//rg.GET("/test", middleware.Limiter(rate.Every(time.Second)*2, 5), middleware.Authentication(global.ROLE_SUPER_ADMIN), api.TokenTest)
 	})
 
 	//注册用户相关路由组
-	//routeManager.RegisterUserRoutes(func(rg *gin.RouterGroup) {
-	//	rg.GET("/info", middleware.Limiter(rate.Every(time.Second)*20, 40), api.GetUserInfo)
-	//	rg.GET("/my-info", middleware.Limiter(rate.Every(time.Second)*5, 10), middleware.Authentication(global.ROLE_GUEST), api.GetMyUserInfo)
-	//	// 获取和修改用户资料
-	////	rg.GET("/profile", middleware.Limiter(rate.Every(time.Second)*10, 20), api.GetProfile)
-	////	rg.POST("/profile", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.SetProfile)
-	////	rg.POST("/role", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.SetRole)
-	//})
+	routeManager.RegisterUserRoutes(func(rg *gin.RouterGroup) {
+		rg.GET("/info", middleware.Limiter(rate.Every(time.Second)*20, 40), api.GetUserInfo)
+		rg.GET("/my-info", middleware.Limiter(rate.Every(time.Second)*5, 10), middleware.Authentication(global.ROLE_GUEST), api.GetMyUserInfo)
+		//获取和修改用户资料
+		rg.GET("/profile", middleware.Limiter(rate.Every(time.Second)*10, 20), api.GetProfile)
+		rg.POST("/profile", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.SetProfile)
+		rg.POST("/role", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.SetRole)
 
-	//routeManager.RegisterMessageRoutes(func(rg *gin.RouterGroup) {
-	//	rg.GET("/count", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.GetMessageCount)
-	//	rg.GET("/list", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.GetMessageList)
-	//	rg.POST("/read", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.MarkReadMessage)
-	//})
+	})
+	// 注册视频相关路由组
+	routeManager.RegisterVideosRoutes(func(rg *gin.RouterGroup) {
+		// 添加响应头验证
+		rg.GET("", func(c *gin.Context) { // 移除斜杠避免重定向
+			middleware.Limiter(rate.Every(time.Minute)*3, 3)(c)
+			api.GetVideos(c)
+		})
 
-	// 注册帖子相关路由组
-	routeManager.RegisterPostRoutes(func(rg *gin.RouterGroup) {
-		rg.GET("/Tiktok", middleware.Limiter(rate.Every(time.Minute)*3, 5), middleware.Authentication(global.ROLE_USER), api.Index)
-		//rg.POST("/create", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_USER), api.CreatePost)
-		//rg.POST("/edit", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_USER), api.EditPost)
-		//rg.POST("/delete", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_USER), api.DeletePost)
-		//
-		//rg.GET("/detail", middleware.Limiter(rate.Every(time.Second)*10, 10), middleware.Authentication(global.ROLE_GUEST), api.GetPostDetail)
-		//rg.GET("/detail-visitor", middleware.Limiter(rate.Every(time.Second)*10, 10), api.GetPostDetailVisitor)
-		//
-		//rg.GET("/like-post", middleware.Limiter(rate.Every(time.Second)*50, 100), middleware.Authentication(global.ROLE_USER), api.GetLikePost)
-		//rg.POST("/like-post", middleware.Limiter(rate.Every(time.Second)*5, 20), middleware.Authentication(global.ROLE_USER), api.LikePost)
-		//// rg.GET("/info", middleware.Limiter(rate.Every(time.Second)*20, 40), api.GetUserInfo)
-		//
-		//rg.POST("/comment", middleware.Limiter(rate.Every(time.Second)*1, 3), middleware.Authentication(global.ROLE_USER), api.CreateComment)
-		//rg.GET("/comment-more", middleware.Limiter(rate.Every(time.Second)*4, 10), api.GetMoreComments)
-		//
-		//rg.GET("/like-comment", middleware.Limiter(rate.Every(time.Second)*50, 100), middleware.Authentication(global.ROLE_USER), api.GetLikeComment)
-		//rg.POST("/like-comment", middleware.Limiter(rate.Every(time.Second)*5, 20), middleware.Authentication(global.ROLE_USER), api.LikeComment)
-		//
-		//rg.GET("/post-more", middleware.Limiter(rate.Every(time.Second)*4, 10), api.GetMorePosts)
-		//rg.GET("/post-page", middleware.Limiter(rate.Every(time.Second)*4, 10), api.GetPagePosts)
-		//
-		//rg.POST("/feature", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_ADMIN), api.SetPostFeature)
-		//
-		//rg.GET("/diary-list", middleware.Limiter(rate.Every(time.Second)*4, 10), api.GetDiaryList)
-		//
-		//rg.GET("/search", middleware.Limiter(rate.Every(time.Minute)*6, 10), api.SearchPosts)
+		rg.POST("/upload", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.UploadVideo)
+		//rg.POST("/getvideosbylasttime", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_ADMIN), api.GetVideosByLastTime)
 	})
 
-	//// 注册比赛相关路由组
-	//routeManager.RegisterContestRoutes(func(rg *gin.RouterGroup) {
-	//	rg.GET("/list", middleware.Limiter(rate.Every(time.Second)*4, 8), api.GetContestList)
-	//
-	//	rg.POST("/create", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_ADMIN), api.CreateContest)
-	//	rg.GET("/detail", middleware.Limiter(rate.Every(time.Second)*4, 8), api.GetContestDetail)
-	//
-	//	rg.POST("/booking", middleware.Limiter(rate.Every(time.Second)*2, 4), middleware.Authentication(global.ROLE_USER), api.BookingContest)
-	//	rg.GET("/booking", middleware.Limiter(rate.Every(time.Second)*8, 20), middleware.Authentication(global.ROLE_USER), api.IsBookingContest)
-	//
-	//	rg.POST("/recommend", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_ADMIN), api.RecommendContest)
-	//})
+	routeManager.RegisterCommunicationRoutes(func(rg *gin.RouterGroup) {
+		rg.POST("/addfriend", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.AddFriend)
+		rg.POST("/searchFriends", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SearchFriend)
+		rg.GET("/sendUserMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SendUserMsg)
+		rg.GET("/SendMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SendMsg)
+		rg.GET("/getUserList", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.GetUserList)
+		rg.GET("/chat", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.Chats)
+		rg.GET("/createCommunity", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.CreateCommunity)
+		rg.POST("/loadCommunity", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.LoadCommunity)
+		rg.POST("/redisMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.RedisMsg)
+		rg.POST("/joinGroups", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.JoinGroups)
+
+	})
 }
+
+////上传文件
+//r.POST("/attach/upload", service.Upload)
+
+////心跳续命 不合适  因为Node  所以前端发过来的消息再receProc里面处理
+//// r.POST("/user/heartbeat", service.Heartbeat)
+//r.POST("/user/redisMsg", service.RedisMsg)

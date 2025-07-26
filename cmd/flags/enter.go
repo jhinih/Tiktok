@@ -3,6 +3,7 @@ package flags
 import (
 	"Tiktok/global"
 	"Tiktok/model"
+	"Tiktok/models"
 	"flag"
 	"fmt"
 	"os"
@@ -35,15 +36,9 @@ func migrateTables() {
 	//自动迁移某一个表，确保表结构存在
 	err := global.DB.AutoMigrate(
 		&model.User{},
-		//&model.Post{},
-		//&model.PostLike{},
-		//&model.Comment{},
-		//&model.CommentLike{},
-		//&model.Ulearning{},
-		//&model.Message{},
-		//&model.Contest{},
-		//&model.Booking{},
-		&model.AutoSignin{},
+		&model.Video{},
+		&models.Community{},
+		&models.Contact{},
 	)
 	if err != nil {
 		fmt.Println("数据库迁移失败！")

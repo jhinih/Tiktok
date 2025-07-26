@@ -53,6 +53,7 @@ func (l *LoginLogic) SendCode(ctx context.Context, req types.SendCodeRequest) (r
 	if err != nil {
 		return resp, response.ErrResponse(err, response.EMAIL_SEND_ERROR)
 	}
+	resp.Ok = true
 	// 发送邮箱成功
 	zlog.CtxDebugf(ctx, "发送邮箱成功: %v", req)
 	return resp, nil
@@ -106,13 +107,28 @@ func (l *LoginLogic) Register(ctx context.Context, req types.RegisterRequest) (r
 	//创建用户
 	id := global.SnowflakeNode.Generate().Int64()
 	user = model.User{
-		ID:       id,
-		Username: req.Username,
-		Password: string(HashPassword),
-		Email:    req.Email,
-		Role:     0,
+		TimeModel: model.TimeModel{
+			CreatedTime: time.Now().Unix(),
+			UpdatedTime: time.Now().Unix(),
+		},
+		ID:            id,
+		Username:      req.Username,
+		Password:      string(HashPassword),
+		Email:         req.Email,
+		CreateAt:      time.Now().Unix(),
+		Role:          0,
+		IsLogout:      false,
+		LoginTime:     time.Time{}, // 使用零值时间而不是 "0000-00-00"
+		HeartbeatTime: time.Time{},
+		LoginOutTime:  time.Time{},
+		Phone:         "req.Phone",
+		ClientIp:      "req.ClientIp",
+		ClientPort:    "req.ClientPort",
+		DeviceInfo:    "req.DeviceInfo",
+		Bio:           "jhinih很懒，什么都没留下",
 	}
 	// 放入数据库
+
 	err = request.NewLoginRequest(global.DB).AddUser(user)
 	if err != nil {
 		zlog.CtxErrorf(ctx, "创建用户失败: %v", err)
@@ -121,6 +137,7 @@ func (l *LoginLogic) Register(ctx context.Context, req types.RegisterRequest) (r
 	// 生成 atoken
 	atoken, err := jwtUtils.GenAtoken(fmt.Sprintf("%d", id), req.Username, 0, global.ATOKEN_EFFECTIVE_TIME)
 	resp.Atoken = atoken
+	resp.Ok = true
 	return resp, nil
 }
 
@@ -166,6 +183,7 @@ func (l *LoginLogic) Login(ctx context.Context, req types.LoginRequest) (resp ty
 	}
 	resp.Atoken = atoken
 	resp.Rtoken = rtoken
+	resp.Ok = true
 	return resp, nil
 }
 

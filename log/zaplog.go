@@ -85,6 +85,7 @@ func (z *zapConfig) setEncoder(needColour bool, encoder func(cfg zapcore.Encoder
 	if needColour {
 		encodeLevel = zapcore.CapitalColorLevelEncoder
 	}
+
 	z.encoder = encoder(zapcore.EncoderConfig{
 		TimeKey:        "time",
 		LevelKey:       "level",

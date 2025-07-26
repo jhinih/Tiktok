@@ -22,7 +22,7 @@ database:
   driver: mysql
   migrate: true
   # use dsn
-  dsn: root:123456@tcp(localhost:3306)/Tiktok?charset=utf8mb4&parseTime=True&loc=Local&timeout=1000ms
+  dsn: root:123456@tcp(127.0.0.1:3306)/Tiktok?charset=utf8mb4&parseTime=True&loc=Local&timeout=1000ms
 
 email:
   host: smtp.qq.com

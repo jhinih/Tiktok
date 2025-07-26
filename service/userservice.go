@@ -5,12 +5,10 @@ import (
 	"Tiktok/utils"
 	"fmt"
 	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"time"
 
-	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -30,135 +28,135 @@ func GetUserList(c *gin.Context) {
 	})
 }
 
-// CreateUser
-// @Summary 新增用户
-// @Tags 用户模块
-// @param name query string false "用户名"
-// @param password query string false "密码"
-// @param repassword query string false "确认密码"
-// @Success 200 {string} json{"code","message"}
-// @Router /user/createUser [get]
-func CreateUser(c *gin.Context) {
+//// CreateUser
+//// @Summary 新增用户
+//// @Tags 用户模块
+//// @param name query string false "用户名"
+//// @param password query string false "密码"
+//// @param repassword query string false "确认密码"
+//// @Success 200 {string} json{"code","message"}
+//// @Router /user/createUser [get]
+//func CreateUser(c *gin.Context) {
+//
+//	// user.Name = c.Query("name")
+//	// password := c.Query("password")
+//	// repassword := c.Query("repassword")
+//	user := models.UserBasic{}
+//	user.Name = c.Request.FormValue("name")
+//	password := c.Request.FormValue("password")
+//	repassword := c.Request.FormValue("Identity")
+//	//email := c.Request.FormValue("Email")
+//	fmt.Println(user.Name, "  >>>>>>>>>>>  ", password, repassword)
+//	salt := fmt.Sprintf("%06d", rand.Int31())
+//
+//	data := models.FindUserByName(user.Name)
+//	if user.Name == "" || password == "" || repassword == "" {
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "用户名或密码不能为空！",
+//			"data":    user,
+//		})
+//		//return nil, errors.New("用户名或密码不能为空！")
+//		return
+//	}
+//	if data.Name != "" {
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "用户名已注册！",
+//			"data":    user,
+//		})
+//		//return nil, errors.New("用户名已注册！")
+//		return
+//	}
+//	if password != repassword {
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "两次密码不一致！",
+//			"data":    user,
+//		})
+//		//return nil, errors.New("两次密码不一致！")
+//		return
+//	}
+//	//user.PassWord = password
+//	user.PassWord = utils.MakePassword(password, salt)
+//	////JWT加密获取Token
+//	//uid := user.ID
+//	//token, err := utils.Award(&uid)
+//	//if err != nil {
+//	//	c.JSON(200, gin.H{
+//	//		"code":    -1,
+//	//		"message": "Token生成失败",
+//	//		"data":    user,
+//	//	})
+//	//}
+//	//var userInfo types.UserInfo
+//	//userInfo.Id = uid
+//	//userInfo.Name = user.Name
+//	//userInfo.Avatar = user.Avatar
+//	//var lr = types.LoginRes{
+//	//	Token:    token,
+//	//	UserInfo: userInfo,
+//	//}
+//
+//	user.Salt = salt
+//	//user.Email = email
+//	fmt.Println(user.PassWord)
+//
+//	user.LoginTime = time.Now()
+//	user.LoginOutTime = time.Now()
+//	user.HeartbeatTime = time.Now()
+//
+//	models.CreateUser(user)
+//	c.JSON(200, gin.H{
+//		"code":    0, //  0成功   -1失败
+//		"message": "新增用户成功！",
+//		"data":    user,
+//	})
+//	//return &lr, nil
+//	return
+//}
 
-	// user.Name = c.Query("name")
-	// password := c.Query("password")
-	// repassword := c.Query("repassword")
-	user := models.UserBasic{}
-	user.Name = c.Request.FormValue("name")
-	password := c.Request.FormValue("password")
-	repassword := c.Request.FormValue("Identity")
-	//email := c.Request.FormValue("Email")
-	fmt.Println(user.Name, "  >>>>>>>>>>>  ", password, repassword)
-	salt := fmt.Sprintf("%06d", rand.Int31())
-
-	data := models.FindUserByName(user.Name)
-	if user.Name == "" || password == "" || repassword == "" {
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "用户名或密码不能为空！",
-			"data":    user,
-		})
-		//return nil, errors.New("用户名或密码不能为空！")
-		return
-	}
-	if data.Name != "" {
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "用户名已注册！",
-			"data":    user,
-		})
-		//return nil, errors.New("用户名已注册！")
-		return
-	}
-	if password != repassword {
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "两次密码不一致！",
-			"data":    user,
-		})
-		//return nil, errors.New("两次密码不一致！")
-		return
-	}
-	//user.PassWord = password
-	user.PassWord = utils.MakePassword(password, salt)
-	////JWT加密获取Token
-	//uid := user.ID
-	//token, err := utils.Award(&uid)
-	//if err != nil {
-	//	c.JSON(200, gin.H{
-	//		"code":    -1,
-	//		"message": "Token生成失败",
-	//		"data":    user,
-	//	})
-	//}
-	//var userInfo types.UserInfo
-	//userInfo.Id = uid
-	//userInfo.Name = user.Name
-	//userInfo.Avatar = user.Avatar
-	//var lr = types.LoginRes{
-	//	Token:    token,
-	//	UserInfo: userInfo,
-	//}
-
-	user.Salt = salt
-	//user.Email = email
-	fmt.Println(user.PassWord)
-
-	user.LoginTime = time.Now()
-	user.LoginOutTime = time.Now()
-	user.HeartbeatTime = time.Now()
-
-	models.CreateUser(user)
-	c.JSON(200, gin.H{
-		"code":    0, //  0成功   -1失败
-		"message": "新增用户成功！",
-		"data":    user,
-	})
-	//return &lr, nil
-	return
-}
-
-// GetUserList
-// @Summary 所有用户
-// @Tags 用户模块
-// @param name query string false "用户名"
-// @param password query string false "密码"
-// @Success 200 {string} json{"code","message"}
-// @Router /user/findUserByNameAndPwd [post]
-func FindUserByNameAndPwd(c *gin.Context) {
-	data := models.UserBasic{}
-	name := c.Request.FormValue("name")
-	password := c.Request.FormValue("password")
-
-	fmt.Println(name, password)
-	user := models.FindUserByName(name)
-	if user.Name == "" {
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "该用户不存在",
-			"data":    data,
-		})
-		return
-	}
-
-	flag := utils.ValidPassword(password, user.Salt, user.PassWord)
-	if !flag {
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "密码不正确",
-			"data":    data,
-		})
-		return
-	}
-	pwd := utils.MakePassword(password, user.Salt)
-	data = models.FindUserByNameAndPwd(name, pwd)
-
-	c.JSON(200, gin.H{
-		"code":    0, //  0成功   -1失败
-		"message": "登录成功",
-		"data":    data,
-	})
-}
+//// GetUserList
+//// @Summary 所有用户
+//// @Tags 用户模块
+//// @param name query string false "用户名"
+//// @param password query string false "密码"
+//// @Success 200 {string} json{"code","message"}
+//// @Router /user/findUserByNameAndPwd [post]
+//func FindUserByNameAndPwd(c *gin.Context) {
+//	data := models.UserBasic{}
+//	name := c.Request.FormValue("name")
+//	password := c.Request.FormValue("password")
+//
+//	fmt.Println(name, password)
+//	user := models.FindUserByName(name)
+//	if user.Name == "" {
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "该用户不存在",
+//			"data":    data,
+//		})
+//		return
+//	}
+//
+//	flag := utils.ValidPassword(password, user.Salt, user.PassWord)
+//	if !flag {
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "密码不正确",
+//			"data":    data,
+//		})
+//		return
+//	}
+//	pwd := utils.MakePassword(password, user.Salt)
+//	data = models.FindUserByNameAndPwd(name, pwd)
+//
+//	c.JSON(200, gin.H{
+//		"code":    0, //  0成功   -1失败
+//		"message": "登录成功",
+//		"data":    data,
+//	})
+//}
 
 // DeleteUser
 // @Summary 删除用户
@@ -179,46 +177,46 @@ func DeleteUser(c *gin.Context) {
 
 }
 
-// UpdateUser
-// @Summary 修改用户
-// @Tags 用户模块
-// @param id formData string false "id"
-// @param name formData string false "name"
-// @param password formData string false "password"
-// @param phone formData string false "phone"
-// @param email formData string false "email"
-// @Success 200 {string} json{"code","message"}
-// @Router /user/updateUser [post]
-func UpdateUser(c *gin.Context) {
-	user := models.UserBasic{}
-	id, _ := strconv.Atoi(c.PostForm("id"))
-	user.ID = uint(id)
-	user.Name = c.PostForm("name")
-	user.PassWord = c.PostForm("password")
-	user.Phone = c.PostForm("phone")
-	user.Avatar = c.PostForm("icon")
-	user.Email = c.PostForm("email")
-	user.Avatar = c.PostForm("icon")
-	fmt.Println("update :", user)
-
-	_, err := govalidator.ValidateStruct(user)
-	if err != nil {
-		fmt.Println(err)
-		c.JSON(200, gin.H{
-			"code":    -1, //  0成功   -1失败
-			"message": "修改参数不匹配！",
-			"data":    user,
-		})
-	} else {
-		models.UpdateUser(user)
-		c.JSON(200, gin.H{
-			"code":    0, //  0成功   -1失败
-			"message": "修改用户成功！",
-			"data":    user,
-		})
-	}
-
-}
+//// UpdateUser
+//// @Summary 修改用户
+//// @Tags 用户模块
+//// @param id formData string false "id"
+//// @param name formData string false "name"
+//// @param password formData string false "password"
+//// @param phone formData string false "phone"
+//// @param email formData string false "email"
+//// @Success 200 {string} json{"code","message"}
+//// @Router /user/updateUser [post]
+//func UpdateUser(c *gin.Context) {
+//	user := models.UserBasic{}
+//	id, _ := strconv.Atoi(c.PostForm("id"))
+//	user.ID = uint(id)
+//	user.Name = c.PostForm("name")
+//	user.PassWord = c.PostForm("password")
+//	user.Phone = c.PostForm("phone")
+//	user.Avatar = c.PostForm("icon")
+//	user.Email = c.PostForm("email")
+//	user.Avatar = c.PostForm("icon")
+//	fmt.Println("update :", user)
+//
+//	_, err := govalidator.ValidateStruct(user)
+//	if err != nil {
+//		fmt.Println(err)
+//		c.JSON(200, gin.H{
+//			"code":    -1, //  0成功   -1失败
+//			"message": "修改参数不匹配！",
+//			"data":    user,
+//		})
+//	} else {
+//		models.UpdateUser(user)
+//		c.JSON(200, gin.H{
+//			"code":    0, //  0成功   -1失败
+//			"message": "修改用户成功！",
+//			"data":    user,
+//		})
+//	}
+//
+//}
 
 // 防止跨域站点伪造请求
 var upGrader = websocket.Upgrader{
@@ -268,31 +266,31 @@ func MsgHandler(c *gin.Context, ws *websocket.Conn) {
 	}
 }
 
-func SendUserMsg(c *gin.Context) {
-	models.Chat(c.Writer, c.Request)
-}
-func SearchFriends(c *gin.Context) {
-	id, _ := strconv.Atoi(c.Request.FormValue("userId"))
-	users := models.SearchFriend(uint(id))
-	// c.JSON(200, gin.H{
-	// 	"code":    0, //  0成功   -1失败
-	// 	"message": "查询好友列表成功！",
-	// 	"data":    users,
-	// })
-	utils.RespOKList(c.Writer, users, len(users))
-}
+//func SendUserMsg(c *gin.Context) {
+//	models.Chat(c.Writer, c.Request)
+//}
+//func SearchFriends(c *gin.Context) {
+//	id, _ := strconv.Atoi(c.Request.FormValue("userId"))
+//	users := models.SearchFriend(uint(id))
+//	// c.JSON(200, gin.H{
+//	// 	"code":    0, //  0成功   -1失败
+//	// 	"message": "查询好友列表成功！",
+//	// 	"data":    users,
+//	// })
+//	utils.RespOKList(c.Writer, users, len(users))
+//}
 
-func AddFriend(c *gin.Context) {
-	userId, _ := strconv.Atoi(c.Request.FormValue("userId"))
-	targetName := c.Request.FormValue("targetName")
-	//targetId, _ := strconv.Atoi(c.Request.FormValue("targetId"))
-	code, msg := models.AddFriend(uint(userId), targetName)
-	if code == 0 {
-		utils.RespOK(c.Writer, code, msg)
-	} else {
-		utils.RespFail(c.Writer, msg)
-	}
-}
+//func AddFriend(c *gin.Context) {
+//	userId, _ := strconv.Atoi(c.Request.FormValue("userId"))
+//	targetName := c.Request.FormValue("targetName")
+//	//targetId, _ := strconv.Atoi(c.Request.FormValue("targetId"))
+//	code, msg := models.AddFriend(uint(userId), targetName)
+//	if code == 0 {
+//		utils.RespOK(c.Writer, code, msg)
+//	} else {
+//		utils.RespFail(c.Writer, msg)
+//	}
+//}
 
 // 新建群
 func CreateCommunity(c *gin.Context) {

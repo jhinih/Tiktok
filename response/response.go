@@ -45,8 +45,11 @@ var (
 	EMAIL_OR_PASSWORD_ERROR = JhinihCode{10009, "账号或密码错误"}
 	USER_ALREADY_EXIST      = JhinihCode{10010, "用户已存在"}
 	USER_NOT_EXIST          = JhinihCode{10011, "用户不存在"}
-	DIARY_ALREADY_EXIST     = JhinihCode{10012, "周记已存在"}
-	DIARY_CANT_DELETE       = JhinihCode{10013, "周记不能删除"}
+	ME_AND_ME               = JhinihCode{10012, "不能加自己"}
+	FRIEND_YES_FRIEN        = JhinihCode{10013, "不能重复添加"}
+	FRIEND_NOT_EXIT         = JhinihCode{10014, "好友ID为空"}
+	COMMUNITY_IS_BLANK      = JhinihCode{10015, "群名称为空"}
+	FACK_FACK_FACK          = JhinihCode{10016, "开发者不允许"}
 
 	/* 用户错误 20000 ~ 29999 */
 	USER_NOT_LOGIN = JhinihCode{20001, "用户未登录"}
