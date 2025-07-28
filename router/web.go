@@ -99,23 +99,6 @@ func listen() (*gin.Engine, error) {
 // registerRoutes 注册各业务路由的具体处理函数
 func registerRoutes(routeManager *manager.RouteManager) {
 
-	//// 注册通用路由组
-	//routeManager.RegisterCommonRoutes(func(rg *gin.RouterGroup) {
-	//	rg.POST("/test", middleware.Limiter(rate.Every(time.Hour)*1, 10), api.Template)
-	//
-	//	rg.GET("/signin-list", middleware.Limiter(rate.Every(time.Minute)*5, 8), middleware.Authentication(global.ROLE_USER), api.SigninList)
-	//	rg.POST("/signin", middleware.Limiter(rate.Every(time.Minute)*5, 8), middleware.Authentication(global.ROLE_USER), api.Signin)
-	//	rg.POST("/signin-teacher", middleware.Limiter(rate.Every(time.Minute)*5, 8), middleware.Authentication(global.ROLE_USER), api.SigninTeacher)
-	//
-	//	rg.GET("/auto-list", middleware.Limiter(rate.Every(time.Second)*2, 4), middleware.Authentication(global.ROLE_USER), api.GetAutoList)
-	//	rg.POST("/auto-setting", middleware.Limiter(rate.Every(time.Minute)*3, 5), middleware.Authentication(global.ROLE_USER), api.AutoSetting)
-	//})
-
-	//// 注册文件上传相关路由组
-	//routeManager.RegisterFileRoutes(func(rg *gin.RouterGroup) {
-	//	rg.POST("/upload", middleware.Limiter(rate.Every(time.Minute)*3, 5), middleware.Authentication(global.ROLE_GUEST), api.UploadFile)
-	//})
-
 	// 注册登录相关路由组
 	routeManager.RegisterLoginRoutes(func(rg *gin.RouterGroup) {
 		rg.POST("/send-code", middleware.Limiter(rate.Every(time.Minute)*4, 4), api.SendCode)
@@ -137,36 +120,37 @@ func registerRoutes(routeManager *manager.RouteManager) {
 		rg.POST("/role", middleware.Limiter(rate.Every(time.Second)*4, 8), middleware.Authentication(global.ROLE_GUEST), api.SetRole)
 
 	})
+
 	// 注册视频相关路由组
 	routeManager.RegisterVideosRoutes(func(rg *gin.RouterGroup) {
 		// 添加响应头验证
 		rg.GET("", func(c *gin.Context) { // 移除斜杠避免重定向
-			middleware.Limiter(rate.Every(time.Minute)*3, 3)(c)
+			middleware.Limiter(rate.Every(time.Minute)*20, 40)(c)
 			api.GetVideos(c)
 		})
 
-		rg.POST("/upload", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.UploadVideo)
+		rg.POST("/upload", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.UploadVideo)
 		//rg.POST("/getvideosbylasttime", middleware.Limiter(rate.Every(time.Minute)*3, 3), middleware.Authentication(global.ROLE_ADMIN), api.GetVideosByLastTime)
 	})
-
+	//注册聊天相关路由组
 	routeManager.RegisterCommunicationRoutes(func(rg *gin.RouterGroup) {
-		rg.POST("/addfriend", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.AddFriend)
-		rg.POST("/searchFriends", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SearchFriend)
-		rg.GET("/sendUserMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SendUserMsg)
-		rg.GET("/SendMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.SendMsg)
-		rg.GET("/getUserList", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.GetUserList)
-		rg.GET("/chat", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.Chats)
-		rg.GET("/createCommunity", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.CreateCommunity)
-		rg.POST("/loadCommunity", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.LoadCommunity)
-		rg.POST("/redisMsg", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.RedisMsg)
-		rg.POST("/joinGroups", middleware.Limiter(rate.Every(time.Minute)*3, 3), api.JoinGroups)
+		rg.POST("/add-friend", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.AddFriend)
+		rg.POST("/search-friends", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.SearchFriend)
+
+		rg.GET("/Send-msg", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.SendMsg)
+		rg.GET("/send-user-msg", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.SendUserMsg)
+		rg.GET("/send-group-msg", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.SendGroupMsg)
+
+		rg.GET("/get-user-list", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.GetUserList)
+		rg.GET("/chat", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.Chats)
+
+		rg.POST("/create-community", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.CreateCommunity)
+		rg.POST("/load-community", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.LoadCommunity)
+		rg.POST("/join-groups", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.JoinGroups)
+
+		rg.POST("/redis-msg", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.RedisMsg)
+
+		rg.POST("/upload", middleware.Limiter(rate.Every(time.Minute)*20, 40), api.Upload)
 
 	})
 }
-
-////上传文件
-//r.POST("/attach/upload", service.Upload)
-
-////心跳续命 不合适  因为Node  所以前端发过来的消息再receProc里面处理
-//// r.POST("/user/heartbeat", service.Heartbeat)
-//r.POST("/user/redisMsg", service.RedisMsg)

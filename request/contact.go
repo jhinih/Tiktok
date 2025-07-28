@@ -1,9 +1,8 @@
 package request
 
 import (
-	"Tiktok/global"
+	"Tiktok/log/zlog"
 	"Tiktok/model"
-	"Tiktok/utils"
 	"gorm.io/gorm"
 )
 
@@ -17,44 +16,91 @@ func NewContactRequest(db *gorm.DB) *ContactRequest {
 	}
 }
 
-// 添加好友   自己的ID  ， 好友的ID
-func (r *ContactRequest) AddFriend(userId uint, targetName string) (err error) {
-	targetUser, err := NewUserRequest(global.DB).FindUserByName(targetName)
-
-	tx := utils.DB.Begin()
-	//事务一旦开始，不论什么异常最终都会 Rollback
+// 添加好友
+func (r *ContactRequest) AddFriend(ownerUser, targetUser model.User) (err error) {
+	tx := r.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
 			tx.Rollback()
+			return
+		}
+		if err != nil {
+			tx.Rollback()
 		}
 	}()
-	contact := model.Contact{}
-	contact.OwnerId = userId
-	contact.TargetId = uint(targetUser.ID)
-	contact.Type = 1
-	if err := r.DB.Create(&contact).Error; err != nil {
-		tx.Rollback()
+
+	// 创建正向联系人记录
+	contact := model.Contact{
+		OwnerId:    ownerUser.ID,
+		OwnerName:  ownerUser.Username,
+		TargetId:   targetUser.ID,
+		TargetName: targetUser.Username,
+		Type:       1,
+	}
+
+	// 添加详细日志
+	zlog.Debugf("Creating forward contact: %+v", contact)
+	if err = tx.Create(&contact).Error; err != nil {
+		zlog.Errorf("Failed to create forward contact: %v", err)
 		return err
 	}
-	contact1 := model.Contact{}
-	contact1.OwnerId = uint(targetUser.ID)
-	contact1.TargetId = userId
-	contact1.Type = 1
-	if err := r.DB.Create(&contact1).Error; err != nil {
-		tx.Rollback()
+	zlog.Debugf("Forward contact created successfully, ID: %d", contact.ID)
+
+	// 创建反向联系人记录
+	reverseContact := model.Contact{
+		OwnerId:    targetUser.ID,
+		OwnerName:  targetUser.Username,
+		TargetId:   ownerUser.ID,
+		TargetName: ownerUser.Username,
+		Type:       1,
+	}
+
+	zlog.Debugf("Creating reverse contact: %+v", reverseContact)
+	if err = tx.Create(&reverseContact).Error; err != nil {
+		zlog.Errorf("Failed to create reverse contact: %v", err)
 		return err
 	}
-	tx.Commit()
-	return err
+	zlog.Debugf("Reverse contact created successfully, ID: %d", reverseContact.ID)
+
+	if err = tx.Commit().Error; err != nil {
+		return err
+	}
+
+	return nil
 }
-func (r *ContactRequest) SearchFriend(userId uint) []model.User {
+
+// 搜索所有好友
+func (r *ContactRequest) SearchFriend(userId int64) ([]model.User, error) {
 	contacts := make([]model.Contact, 0)
-	objIds := make([]uint64, 0)
-	r.DB.Where("owner_id = ? and type=1", userId).Find(&contacts)
+	objIds := make([]int64, 0)
+	err := r.DB.Where("owner_id = ? and type=1", userId).Find(&contacts).Error
+	if err != nil {
+		return nil, err
+	}
 	for _, v := range contacts {
-		objIds = append(objIds, uint64(v.TargetId))
+		objIds = append(objIds, v.TargetId)
 	}
 	users := make([]model.User, 0)
-	r.DB.Where("id in ?", objIds).Find(&users)
-	return users
+	err = r.DB.Where("id in ?", objIds).Find(&users).Error
+	return users, err
+}
+
+// 是否是好友
+func (r *ContactRequest) IsFriend(UserId, TargetID int64) (model.Contact, error) {
+	var contact model.Contact
+	err := r.DB.Where("owner_id =?  and target_id =? and type=1", UserId, TargetID).Find(&contact).Error
+	return contact, err
+}
+
+// 搜索我的群聊
+func (r *ContactRequest) SearchUserByGroupId(communityId int64) []model.Contact {
+	contacts := make([]model.Contact, 0)
+	r.DB.Where("target_id = ? and type=2", communityId).Find(&contacts)
+	return contacts
+}
+
+// 创建群聊
+func (r *ContactRequest) CreatCommunity(contact model.Contact) error {
+	err := r.DB.Create(&contact).Error
+	return err
 }

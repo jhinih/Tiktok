@@ -45,6 +45,11 @@ func (r *UserRequest) GetUserList() []*model.User {
 }
 func (r *UserRequest) FindUserByName(name string) (model.User, error) {
 	user := model.User{}
-	err := r.DB.Where("name = ?", name).First(&user).Error
+	err := r.DB.Where("username = ?", name).First(&user).Error
+	return user, err
+}
+func (r *UserRequest) FindUserById(id int64) (model.User, error) {
+	user := model.User{}
+	err := r.DB.Where("id = ?", id).First(&user).Error
 	return user, err
 }

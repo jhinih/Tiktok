@@ -3,11 +3,10 @@ package initialize
 import (
 	"Tiktok/configs"
 	"Tiktok/global"
+	"Tiktok/log/zlog"
 	"Tiktok/pkg/database"
 	"Tiktok/pkg/mysqlx"
 	"Tiktok/pkg/redisx"
-
-	"Tiktok/log/zlog"
 )
 
 func InitDataBase(config configs.Config) {

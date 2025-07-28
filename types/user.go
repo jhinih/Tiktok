@@ -9,6 +9,9 @@ type GetUserInfoResponse struct {
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
 	Role     int    `json:"role"`
+	Bio      string `json:"bio"`
+	CreateAt int64  `json:"create_at,string"`
+	Email    string `json:"email"`
 }
 
 type GetUserProfileRequest struct {
@@ -20,6 +23,9 @@ type GetUserProfileResponse struct {
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
 	Role     int    `json:"role"`
+	Bio      string `json:"bio"`
+	Email    string `json:"email"`
+	CreateAt int64  `json:"create_at,string"`
 }
 
 type SetUserProfileRequest struct {
@@ -31,6 +37,7 @@ type SetUserProfileRequest struct {
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
 	Bio      string `json:"bio"`
+	Email    string `json:"email"`
 }
 
 type SetUserProfileResponse struct {

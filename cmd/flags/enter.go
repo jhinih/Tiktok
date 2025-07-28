@@ -3,7 +3,6 @@ package flags
 import (
 	"Tiktok/global"
 	"Tiktok/model"
-	"Tiktok/models"
 	"flag"
 	"fmt"
 	"os"
@@ -37,8 +36,9 @@ func migrateTables() {
 	err := global.DB.AutoMigrate(
 		&model.User{},
 		&model.Video{},
-		&models.Community{},
-		&models.Contact{},
+		&model.Community{},
+		&model.Contact{},
+		&model.Message{},
 	)
 	if err != nil {
 		fmt.Println("数据库迁移失败！")

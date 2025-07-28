@@ -1,9 +1,7 @@
 package manager
 
 import (
-	"Tiktok/log/zlog"
 	"Tiktok/middleware"
-
 	"github.com/gin-gonic/gin"
 )
 
@@ -140,9 +138,9 @@ func (rm *RouteManager) RegisterMiddleware(group string, middleware Middleware) 
 func RequestGlobalMiddleware(r *gin.Engine) {
 	// 添加带调试日志的CORS中间件
 	r.Use(func(c *gin.Context) {
-		zlog.Infof("Executing CORS middleware - Before handler")
+		//zlog.Infof("Executing CORS middleware - Before handler")
 		middleware.Cors()(c)
 		c.Next()
-		zlog.Infof("Executing CORS middleware - After handler")
+		//zlog.Infof("Executing CORS middleware - After handler")
 	})
 }

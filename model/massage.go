@@ -4,13 +4,14 @@ import (
 	"github.com/gorilla/websocket"
 	"gopkg.in/fatih/set.v0"
 	"gorm.io/gorm"
-	"sync"
 )
 
 type Message struct {
 	gorm.Model
-	UserId     int64  //发送者
-	TargetId   int64  //接受者
+	UserId     int64 //发送者
+	UserName   string
+	TargetId   int64 //接受者
+	TargetName string
 	Type       int    //发送类型  1私聊  2群聊  3心跳
 	Media      int    //消息类型  1文字 2表情包 3语音 4图片 /表情包
 	Content    string //消息内容
@@ -40,8 +41,6 @@ type Node struct {
 	GroupSets     set.Interface   //好友 / 群
 }
 
-// 映射关系
-var clientMap map[int64]*Node = make(map[int64]*Node, 0)
-
-// 读写锁
-var rwLocker sync.RWMutex
+func (table *Node) TableName() string {
+	return "node"
+}

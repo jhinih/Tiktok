@@ -2,8 +2,6 @@ package request
 
 import (
 	"Tiktok/model"
-	"Tiktok/utils"
-	"fmt"
 	"gorm.io/gorm"
 )
 
@@ -16,76 +14,73 @@ func NewCommunityRequest(db *gorm.DB) *CommunityRequest {
 		DB: db,
 	}
 }
+
+// 创建群聊
 func (r *CommunityRequest) CreateCommunity(community model.Community) (err error) {
-	tx := utils.DB.Begin()
-	//事务一旦开始，不论什么异常最终都会 Rollback
+	tx := r.DB.Begin()
 	defer func() {
-		if r := recover(); r != nil {
+		if p := recover(); p != nil {
+			tx.Rollback()
+			panic(p) // re-throw panic after Rollback
+		} else if err != nil {
 			tx.Rollback()
 		}
 	}()
-	if err := r.DB.Create(&community).Error; err != nil {
-		fmt.Println(err)
-		tx.Rollback()
+
+	if err = tx.Create(&community).Error; err != nil {
 		return err
 	}
-	contact := model.Contact{}
-	contact.OwnerId = community.OwnerId
-	contact.TargetId = uint(community.ID)
-	contact.Type = 2 //群关系
-	if err := r.DB.Create(&contact).Error; err != nil {
-		tx.Rollback()
+
+	contact := model.Contact{
+		OwnerId:    community.OwnerId,
+		OwnerName:  community.OwnerName,
+		TargetId:   community.ID,
+		TargetName: community.Name,
+		Type:       2, //群关系
+		Desc:       community.Desc,
+	}
+
+	if err = tx.Create(&contact).Error; err != nil {
 		return err
 	}
-	tx.Commit()
-	return err
+
+	return tx.Commit().Error
 }
 
 // 查找某个群
-
 func (r *CommunityRequest) FindCommunityByName(name string) model.Community {
 	community := model.Community{}
-	utils.DB.Where("name = ?", name).First(&community)
+	if err := r.DB.Where("name = ?", name).First(&community).Error; err != nil {
+		return model.Community{}
+	}
 	return community
 }
 
-func (r *CommunityRequest) LoadCommunity(OwnerId int) (err error) {
+// 加载群列表
+func (r *CommunityRequest) LoadUserCommunity(OwnerId int64) []model.Contact {
 	contacts := make([]model.Contact, 0)
-	objIds := make([]uint64, 0)
 	r.DB.Where("owner_id = ? and type=2", OwnerId).Find(&contacts)
-	for _, v := range contacts {
-		objIds = append(objIds, uint64(v.TargetId))
-	}
-
+	return contacts
+}
+func (r *CommunityRequest) LoadCommunityUser(objIds []int64) []*model.Community {
 	data := make([]*model.Community, 10)
 	r.DB.Where("id in ?", objIds).Find(&data)
-	for _, v := range data {
-		fmt.Println(v)
-	}
-	//utils.DB.Where()
-	return nil
+	return data
 }
 
 // 加入群聊
-func (r *CommunityRequest) JoinGroup(OwnerId, ComId int) (err error) {
+func (r *CommunityRequest) FindCommunityByNameOrId(OwnerId, ComId int64) model.Community {
 	contact := model.Contact{}
-	contact.OwnerId = uint(OwnerId)
-	//contact.TargetId = comId
+	contact.OwnerId = OwnerId
 	contact.Type = 2
 	community := model.Community{}
-
 	r.DB.Where("id=? or name=?", ComId, ComId).Find(&community)
-	if community.Name == "" {
-		//"没有找到群"
-	}
-	//utils.DB.Where("owner_id=? and target_id=? and type =2 ", userId, comId).Find(&contact)
+	return community
+}
+func (r *CommunityRequest) IsInCommunity(OwnerId int64, community model.Community) model.Contact {
+	contact := model.Contact{}
+	contact.OwnerId = OwnerId
+	contact.Type = 2
 	r.DB.Where("owner_id=? and target_id=? and type =2 ", OwnerId, community.ID).Find(&contact)
-	if contact.TimeModel.CreatedTime != 0 {
-		//"已加过此群"
-	} else {
-		contact.TargetId = uint(community.ID)
-		utils.DB.Create(&contact)
-		//"加群成功"
-	}
-	return nil
+	return contact
 }

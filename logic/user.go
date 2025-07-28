@@ -78,6 +78,9 @@ func (l *UserLogic) GetUserProfile(ctx context.Context, req types.GetUserProfile
 	resp.Username = user.Username
 	resp.Avatar = user.Avatar
 	resp.Role = user.Role
+	resp.Bio = user.Bio
+	resp.Email = user.Email
+	resp.CreateAt = user.CreateAt
 	return resp, nil
 }
 
@@ -130,6 +133,7 @@ func (l *UserLogic) SetUserProfile(ctx context.Context, req types.SetUserProfile
 	user.Username = req.Username
 	user.Avatar = req.Avatar
 	user.Bio = req.Bio
+	user.Email = req.Email
 
 	// 如果用户的身份是游客，那么这次提交将升级为普通用户
 	if user.Role == 0 {

@@ -118,14 +118,14 @@ func (l *LoginLogic) Register(ctx context.Context, req types.RegisterRequest) (r
 		CreateAt:      time.Now().Unix(),
 		Role:          0,
 		IsLogout:      false,
-		LoginTime:     time.Time{}, // 使用零值时间而不是 "0000-00-00"
-		HeartbeatTime: time.Time{},
-		LoginOutTime:  time.Time{},
+		LoginTime:     time.Now(), // 使用零值时间而不是 "0000-00-00"
+		HeartbeatTime: time.Now(),
+		LoginOutTime:  time.Now(),
 		Phone:         "req.Phone",
 		ClientIp:      "req.ClientIp",
 		ClientPort:    "req.ClientPort",
 		DeviceInfo:    "req.DeviceInfo",
-		Bio:           "jhinih很懒，什么都没留下",
+		Bio:           req.Username + "很懒，什么都没留下",
 	}
 	// 放入数据库
 

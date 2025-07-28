@@ -4,8 +4,8 @@ import (
 	"Tiktok/configs"
 	"Tiktok/utils/snowflakeUtils"
 	"github.com/aliyun/aliyun-oss-go-sdk/oss"
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/go-redis/redis/v8"
+	"github.com/elastic/go-elasticsearch/v9"
+	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
