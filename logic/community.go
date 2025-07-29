@@ -9,6 +9,8 @@ import (
 	"Tiktok/types"
 	"Tiktok/utils"
 	"context"
+	"strconv"
+	"strings"
 	"time"
 )
 
@@ -21,15 +23,19 @@ func NewCommunityLogic() *CommunityLogic {
 
 // 新建群
 func (l *CommunityLogic) CreateCommunity(ctx context.Context, req types.CreateCommunityRequest) (resp types.CreateCommunityResponse, err error) {
-
-	community := model.Community{}
-	community.OwnerId = int64(req.OwnerId)
-	community.Name = req.Name
-	community.Img = req.Icon
-	community.Desc = req.Desc
-	community.CreatedTime = time.Now().Unix()
-	community.UpdatedTime = time.Now().Unix()
-	community.OwnerName = req.OwnerName
+	clean := strings.Trim(req.OwnerId, `"`)
+	Id, _ := strconv.ParseInt(clean, 10, 64)
+	community := model.Community{
+		OwnerId:   int64(Id),
+		OwnerName: req.OwnerName,
+		Name:      req.Name,
+		Img:       req.Icon,
+		Desc:      req.Desc,
+		TimeModel: model.TimeModel{
+			CreatedTime: time.Now().Unix(),
+			UpdatedTime: time.Now().Unix(),
+		},
+	}
 	if len(community.Name) == 0 {
 		//"群名称不能为空"
 		response.ErrResponse(err, response.COMMUNITY_IS_BLANK)
@@ -54,15 +60,16 @@ func (l *CommunityLogic) CreateCommunity(ctx context.Context, req types.CreateCo
 
 // 加载群列表
 func (l *CommunityLogic) LoadCommunity(ctx context.Context, req types.LoadCommunityRequest) (resp types.LoadCommunityResponse, err error) {
-	ownerId := req.OwnerId
+	clean := strings.Trim(req.OwnerId, `"`)
+	ownerId, _ := strconv.ParseInt(clean, 10, 64)
 	//	name := c.Request.FormValue("name")
 	contacts := make([]model.Contact, 0)
 	objIds := make([]int64, 0)
-	contacts = request.NewCommunityRequest(global.DB).LoadUserCommunity(ownerId)
+	contacts = request.NewCommunityRequest(global.DB).LoadUserCommunity(int64(ownerId))
 	for _, v := range contacts {
 		objIds = append(objIds, v.TargetId)
 	}
-	data := request.NewCommunityRequest(global.DB).LoadCommunityUser(objIds)
+	data := request.NewCommunityRequest(global.DB).LoadCommunityUser([]int64(objIds))
 	if len(data) != 0 {
 		//response.ErrResponse(err, response.COMMUNITY_IS_BLANK)
 	} else {
@@ -73,17 +80,25 @@ func (l *CommunityLogic) LoadCommunity(ctx context.Context, req types.LoadCommun
 
 // 加入群 userId uint, comId uint
 func (l *CommunityLogic) JoinGroups(ctx context.Context, req types.JoinGroupsRequest) (resp types.JoinGroupsResponse, err error) {
-	userId := req.UserId
-	comId := req.ComId
+	clean := strings.Trim(req.UserId, `"`)
+	userId, _ := strconv.ParseInt(clean, 10, 64)
+	clean = strings.Trim(req.ComId, `"`)
+	comId, _ := strconv.ParseInt(clean, 10, 64)
+
 	community := model.Community{}
-	community = request.NewCommunityRequest(global.DB).FindCommunityByNameOrId(userId, comId)
+	community = request.NewCommunityRequest(global.DB).FindCommunityByNameOrId(int64(comId))
 	contact := model.Contact{}
-	contact.Type = 2
-	contact = request.NewCommunityRequest(global.DB).IsInCommunity(contact.OwnerId, community)
+	contact = request.NewCommunityRequest(global.DB).IsInCommunity(userId, community)
 	if contact.TimeModel.CreatedTime != 0 {
 		//"已加过此群"
 	} else {
+		contact.OwnerId = int64(userId)
 		contact.TargetId = int64(community.ID)
+		contact.TargetName = community.Name
+		contact.TimeModel.CreatedTime = time.Now().Unix()
+		contact.TimeModel.UpdatedTime = time.Now().Unix()
+		contact.Type = 2
+		contact.Desc = "" //后续添加描述
 		err = request.NewContactRequest(global.DB).CreatCommunity(contact)
 		//"加群成功"
 	}

@@ -50,7 +50,7 @@ var (
 	FRIEND_NOT_EXIT         = JhinihCode{10014, "好友ID为空"}
 	COMMUNITY_IS_BLANK      = JhinihCode{10015, "群名称为空"}
 	FACK_FACK_FACK          = JhinihCode{10016, "开发者不允许"}
-
+	PARAM_IS_INVALID        = JhinihCode{10016, "参数转化失败"}
 	/* 用户错误 20000 ~ 29999 */
 	USER_NOT_LOGIN = JhinihCode{20001, "用户未登录"}
 

@@ -15,7 +15,7 @@ func NewChatRequest(db *gorm.DB) *ChatRequest {
 	}
 }
 
-func (r *ChatRequest) SearchUserByGroupId(communityId uint) ([]model.Contact, error) {
+func (r *ChatRequest) SearchUserByGroupId(communityId int64) ([]model.Contact, error) {
 	contacts := make([]model.Contact, 0)
 	//objIds := make([]uint, 0)
 	err := r.DB.Where("target_id = ? and type=2", communityId).Find(&contacts).Error
@@ -28,7 +28,6 @@ func (r *ChatRequest) SearchUsers(users *[]model.User) error {
 	if err := r.DB.Where("is_logout = ?", false).Find(users).Error; err != nil {
 		return err
 	}
-
 	if len(*users) == 0 {
 		return gorm.ErrRecordNotFound
 	}

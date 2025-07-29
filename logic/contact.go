@@ -3,11 +3,12 @@ package logic
 import (
 	"Tiktok/global"
 	"Tiktok/log/zlog"
-	"Tiktok/model"
 	"Tiktok/request"
 	"Tiktok/response"
 	"Tiktok/types"
 	"context"
+	"strconv"
+	"strings"
 )
 
 type ContactLogic struct {
@@ -24,9 +25,15 @@ func (l *ContactLogic) AddFriend(ctx context.Context, req types.AddFriendRequest
 	}
 
 	// 查询发起用户
-	ownerUser, err := request.NewUserRequest(global.DB).FindUserById(req.UserId)
+	clean := strings.Trim(req.UserId, `"`)
+	Id, err := strconv.ParseInt(clean, 10, 64)
 	if err != nil {
-		zlog.CtxErrorf(ctx, "查询发起用户失败: %v, userId: %d", err, req.UserId)
+		zlog.CtxErrorf(ctx, "用户ID转换失败: %v, userId: %s", err, req.UserId)
+		return resp, response.ErrResponse(err, response.PARAM_IS_INVALID)
+	}
+	ownerUser, err := request.NewUserRequest(global.DB).FindUserById(int64(Id))
+	if err != nil {
+		zlog.CtxErrorf(ctx, "查询发起用户失败: %v, userId: %s", err, req.UserId)
 		return resp, response.ErrResponse(err, response.USER_NOT_EXIST)
 	}
 
@@ -38,13 +45,13 @@ func (l *ContactLogic) AddFriend(ctx context.Context, req types.AddFriendRequest
 	}
 
 	// 检查是否添加自己
-	if targetUser.ID == req.UserId {
+	if targetUser.ID == int64(Id) {
 		zlog.CtxErrorf(ctx, "不能添加自己为好友, userId: %d", req.UserId)
 		return resp, response.ErrResponse(err, response.ME_AND_ME)
 	}
 
 	// 检查是否已是好友
-	contact, err := request.NewContactRequest(global.DB).IsFriend(req.UserId, targetUser.ID)
+	contact, err := request.NewContactRequest(global.DB).IsFriend(int64(Id), int64(targetUser.ID))
 	if err != nil {
 		zlog.CtxErrorf(ctx, "检查好友关系失败: %v", err)
 		return resp, response.ErrResponse(err, response.COMMON_FAIL)
@@ -83,7 +90,9 @@ func (l *ContactLogic) AddFriend(ctx context.Context, req types.AddFriendRequest
 }
 
 func (l *ContactLogic) SearchFriend(ctx context.Context, req types.SearchFriendRequest) (resp types.SearchFriendResponse, err error) {
-	users, err := request.NewContactRequest(global.DB).SearchFriend(req.UserId)
+	clean := strings.Trim(req.UserId, `"`)
+	Id, _ := strconv.ParseInt(clean, 10, 64)
+	users, err := request.NewContactRequest(global.DB).SearchFriend(int64(Id))
 	if len(users) == 0 {
 		zlog.CtxErrorf(ctx, "搜索朋友失败: %v", err)
 	}
@@ -91,14 +100,17 @@ func (l *ContactLogic) SearchFriend(ctx context.Context, req types.SearchFriendR
 	return resp, nil
 }
 
-func (l *ContactLogic) SearchUserByGroupId(ctx context.Context, req types.SearchUserByGroupIdRequest) (resp types.SearchUserByGroupIdResponse, err error) {
-	contacts := make([]model.Contact, 0)
-	objIds := make([]int64, 0)
-	contacts = request.NewContactRequest(global.DB).SearchUserByGroupId(req.CommunityId)
-	for _, v := range contacts {
-		objIds = append(objIds, v.OwnerId)
-	}
-	resp.UserIds = objIds
-	zlog.CtxDebugf(ctx, "查找群友成功: %v", req)
-	return resp, err
-}
+//群是否被拥有
+//func (l *ContactLogic) SearchUserByGroupId(ctx context.Context, req types.SearchUserByGroupIdRequest) (resp types.SearchUserByGroupIdResponse, err error) {
+//	contacts := make([]model.Contact, 0)
+//	objIds := make([]int64, 0)
+//	clean := strings.Trim(req.CommunityId, `"`)
+//	Id, _ := strconv.ParseInt(clean, 10, 64)
+//	contacts = request.NewContactRequest(global.DB).SearchUserByGroupId(int64(Id))
+//	for _, v := range contacts {
+//		objIds = append(objIds, v.OwnerId)
+//	}
+//	resp.UserIds = objIds
+//	zlog.CtxDebugf(ctx, "查找群友成功: %v", req)
+//	return resp, err
+//}

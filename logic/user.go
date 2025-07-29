@@ -49,7 +49,7 @@ func (l *UserLogic) GetUserInfo(ctx context.Context, req types.GetUserInfoReques
 		return resp, response.ErrResponse(err, response.USER_NOT_EXIST)
 	}
 	// 填入参数
-	resp.ID = user.ID
+	resp.ID = strconv.FormatInt(user.ID, 10)
 	resp.Username = user.Username
 	resp.Avatar = user.Avatar
 	resp.Role = user.Role
@@ -74,7 +74,7 @@ func (l *UserLogic) GetUserProfile(ctx context.Context, req types.GetUserProfile
 		return resp, response.ErrResponse(err, response.USER_NOT_EXIST)
 	}
 	// 填入参数
-	resp.ID = user.ID
+	resp.ID = strconv.FormatInt(user.ID, 10)
 	resp.Username = user.Username
 	resp.Avatar = user.Avatar
 	resp.Role = user.Role

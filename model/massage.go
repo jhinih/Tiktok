@@ -1,16 +1,18 @@
 package model
 
 import (
+	"fmt"
 	"github.com/gorilla/websocket"
+	"github.com/spf13/viper"
 	"gopkg.in/fatih/set.v0"
 	"gorm.io/gorm"
 )
 
 type Message struct {
 	gorm.Model
-	UserId     int64 //发送者
+	UserId     string //发送者
 	UserName   string
-	TargetId   int64 //接受者
+	TargetId   string //接受者
 	TargetName string
 	Type       int    //发送类型  1私聊  2群聊  3心跳
 	Media      int    //消息类型  1文字 2表情包 3语音 4图片 /表情包
@@ -43,4 +45,40 @@ type Node struct {
 
 func (table *Node) TableName() string {
 	return "node"
+}
+
+// 更新用户心跳
+func (node Node) Heartbeat(currentTime uint64) {
+	node.HeartbeatTime = currentTime
+	return
+}
+
+//// 清理超时连接
+//func CleanConnection(param interface{}) (result bool) {
+//	result = true
+//	defer func() {
+//		if r := recover(); r != nil {
+//			fmt.Println("cleanConnection err", r)
+//		}
+//	}()
+//	//fmt.Println("定时任务,清理超时连接 ", param)
+//	//node.IsHeartbeatTimeOut()
+//	currentTime := uint64(time.Now().Unix())
+//	for i := range clientMap {
+//		node := clientMap[i]
+//		if node.IsHeartbeatTimeOut(currentTime) {
+//			fmt.Println("心跳超时..... 关闭连接：", node)
+//			node.Conn.Close()
+//		}
+//	}
+//	return result
+//}
+
+// 用户心跳是否超时
+func (node *Node) IsHeartbeatTimeOut(currentTime uint64) (timeout bool) {
+	if node.HeartbeatTime+viper.GetUint64("timeout.HeartbeatMaxTime") <= currentTime {
+		fmt.Println("心跳超时。。。自动下线", node)
+		timeout = true
+	}
+	return
 }

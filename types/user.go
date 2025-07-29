@@ -5,7 +5,7 @@ type GetUserInfoRequest struct {
 }
 
 type GetUserInfoResponse struct {
-	ID       int64  `json:"id,string"`
+	ID       string `json:"id,string"`
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
 	Role     int    `json:"role"`
@@ -19,7 +19,7 @@ type GetUserProfileRequest struct {
 }
 
 type GetUserProfileResponse struct {
-	ID       int64  `json:"id,string"`
+	ID       string `json:"id,string"`
 	Username string `json:"username"`
 	Avatar   string `json:"avatar"`
 	Role     int    `json:"role"`

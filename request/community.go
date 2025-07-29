@@ -69,10 +69,7 @@ func (r *CommunityRequest) LoadCommunityUser(objIds []int64) []*model.Community 
 }
 
 // 加入群聊
-func (r *CommunityRequest) FindCommunityByNameOrId(OwnerId, ComId int64) model.Community {
-	contact := model.Contact{}
-	contact.OwnerId = OwnerId
-	contact.Type = 2
+func (r *CommunityRequest) FindCommunityByNameOrId(ComId int64) model.Community {
 	community := model.Community{}
 	r.DB.Where("id=? or name=?", ComId, ComId).Find(&community)
 	return community

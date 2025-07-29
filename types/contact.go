@@ -3,21 +3,21 @@ package types
 import "Tiktok/model"
 
 type AddFriendRequest struct {
-	UserId     int64  `json:"userId"`
+	UserId     string `json:"userId"`
 	TargetName string `json:"username"`
 }
 
 type AddFriendResponse struct {
 }
 type SearchFriendRequest struct {
-	UserId int64 `json:"userId"`
+	UserId string `json:"userId"`
 }
 
 type SearchFriendResponse struct {
 	Users []model.User `json:"users"`
 }
 type SearchUserByGroupIdRequest struct {
-	CommunityId int64 `json:"communityId"`
+	CommunityId string `json:"communityId"`
 }
 
 type SearchUserByGroupIdResponse struct {

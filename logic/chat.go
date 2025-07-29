@@ -41,7 +41,8 @@ var rwLocker sync.RWMutex
 
 // 需要 ：发送者ID ，接受者ID ，消息类型，发送的内容，发送类型
 func (l *ChatLogic) Chat(c *gin.Context, req types.ChatRequest) (resp types.ChatResponse, err error) {
-	userId, _ := strconv.ParseInt(strconv.Itoa(int(req.UserId)), 10, 64)
+	clean := strings.Trim(req.UserId, `"`)
+	userId, _ := strconv.ParseInt(clean, 10, 64)
 	isvalida := true //checkToke()  待.........
 	conn, err := (&websocket.Upgrader{
 		//token 校验
@@ -73,50 +74,98 @@ func (l *ChatLogic) Chat(c *gin.Context, req types.ChatRequest) (resp types.Chat
 	//6.完成接受逻辑
 	go NewChatLogic().recvProc(node)
 	//7.加入在线用户到缓存
-	model.SetUserOnlineInfo("online_"+strconv.Itoa(int(req.UserId)), []byte(node.Addr), time.Duration(viper.GetInt("timeout.RedisOnlineTime"))*time.Hour)
+	model.SetUserOnlineInfo("online_"+req.UserId, []byte(node.Addr), time.Duration(viper.GetInt("timeout.RedisOnlineTime"))*time.Hour)
 
 	//sendMsg(userId, []byte("欢迎进入聊天系统"))
 	return
 }
-
 func (l *ChatLogic) sendProc(node *model.Node) {
 	for {
 		select {
 		case data := <-node.DataQueue:
-			fmt.Println("[ws]sendProc >>>> msg :", string(data))
-			err := node.Conn.WriteMessage(websocket.TextMessage, data)
-			if err != nil {
-				fmt.Println(err)
+			// 空内容直接丢弃
+			if len(data) == 0 || string(data) == "{}" || string(data) == "[]" {
+				fmt.Println("skip empty msg")
+				continue
+			}
+			fmt.Println("[ws]sendProc >>>>", string(data))
+			if err := node.Conn.WriteMessage(websocket.TextMessage, data); err != nil {
+				fmt.Println("write:", err)
 				return
 			}
 		}
 	}
 }
 
+//	func (l *ChatLogic) sendProc(node *model.Node) {
+//		for {
+//			select {
+//			case data := <-node.DataQueue:
+//				fmt.Println("[ws]sendProc >>>> msg :", string(data))
+//				err := node.Conn.WriteMessage(websocket.TextMessage, data)
+//				if err != nil {
+//					fmt.Println(err)
+//					return
+//				}
+//			}
+//		}
+//	}
 func (l *ChatLogic) recvProc(node *model.Node) {
 	for {
 		_, data, err := node.Conn.ReadMessage()
 		if err != nil {
-			fmt.Println(err)
+			fmt.Println("read:", err)
 			return
 		}
-		msg := model.Message{}
-		err = json.Unmarshal(data, &msg)
-		if err != nil {
-			fmt.Println(err)
+		// 1. 纯文本 ping/pong
+		if string(data) == "ping" {
+			node.Conn.WriteMessage(websocket.TextMessage, []byte("pong"))
+			node.Heartbeat(uint64(time.Now().Unix()))
+			continue
 		}
-		//心跳检测 msg.Media == -1 || msg.Type == 3
-		//if msg.Type == 3 {
-		//	currentTime := uint64(time.Now().Unix())
-		//	node.Heartbeat(currentTime)
-		//} else {
-		NewChatLogic().dispatch(data)
-		NewChatLogic().broadMsg(data) //todo 将消息广播到局域网
-		fmt.Println("[ws] recvProc <<<<< ", string(data))
-		//}
+		// 2. JSON 业务消息
+		var msg model.Message
+		if err := json.Unmarshal(data, &msg); err != nil {
+			fmt.Printf("recvProc json err:%v, raw:%s\n", err, string(data))
+			continue
+		}
 
+		if msg.Type == 3 { // 心跳
+			node.Heartbeat(uint64(time.Now().Unix()))
+			continue
+		}
+
+		// 3. 真正业务
+		NewChatLogic().dispatch(data)
+		NewChatLogic().broadMsg(data)
+		fmt.Println("[ws] recvProc <<<<<", string(data))
 	}
 }
+
+//func (l *ChatLogic) recvProc(node *model.Node) {
+//	for {
+//		_, data, err := node.Conn.ReadMessage()
+//		if err != nil {
+//			fmt.Println(err)
+//			return
+//		}
+//		msg := model.Message{}
+//		err = json.Unmarshal(data, &msg)
+//		if err != nil {
+//			fmt.Println(err)
+//		}
+//		//心跳检测 msg.Media == -1 || msg.Type == 3
+//		if msg.Type == 3 {
+//			currentTime := uint64(time.Now().Unix())
+//			node.Heartbeat(currentTime)
+//		} else {
+//			NewChatLogic().dispatch(data)
+//			NewChatLogic().broadMsg(data) //todo 将消息广播到局域网
+//			fmt.Println("[ws] recvProc <<<<< ", string(data))
+//		}
+//
+//	}
+//}
 
 var udpsendChan chan []byte = make(chan []byte, 1024)
 
@@ -209,16 +258,16 @@ func (l *ChatLogic) dispatch(data []byte) {
 }
 func (l *ChatLogic) SendGroupMsg(req types.SendGroupMsgRequest) (resp types.SendGroupMsgResponse, err error) {
 	fmt.Println("开始群发消息")
-	//userIds := SearchUserByGroupId(uint(req.TargetId))
-	//var contact []model.Contact
-	contacts, _ := request.NewChatRequest(global.DB).SearchUserByGroupId(uint(req.TargetId))
+	clean := strings.Trim(req.TargetId, `"`)
+	TargetId, _ := strconv.ParseInt(clean, 10, 64)
+	contacts, _ := request.NewChatRequest(global.DB).SearchUserByGroupId(TargetId)
 	userIds := make([]uint, 0)
 	for _, v := range contacts {
 		userIds = append(userIds, uint(v.OwnerId))
 	}
 	for i := 0; i < len(userIds); i++ {
 		//排除给自己的
-		if req.TargetId != int64(userIds[i]) {
+		if TargetId != int64(userIds[i]) {
 			//sendMsg(int64(userIds[i]), msg)
 			req := types.SendMsgRequest{
 				UserId: req.TargetId,
@@ -232,44 +281,60 @@ func (l *ChatLogic) SendGroupMsg(req types.SendGroupMsgRequest) (resp types.Send
 	}
 	return resp, nil
 }
+
 func (l *ChatLogic) SendMsg(req types.SendMsgRequest) (resp types.SendMsgResponse, err error) {
-	rwLocker.RLock()
-	node, ok := clientMap[req.UserId]
-	rwLocker.RUnlock()
-	jsonMsg := model.Message{}
-	json.Unmarshal(req.Msg, &jsonMsg)
-	ctx := context.Background()
-	targetIdStr := strconv.Itoa(int(req.UserId))
-	userIdStr := strconv.Itoa(int(jsonMsg.UserId))
-	jsonMsg.CreateTime = uint64(time.Now().Unix())
-	r, err := global.Rdb.Get(ctx, "online_"+userIdStr).Result()
-	if err != nil {
-		fmt.Println(err)
-	}
-	if r != "" {
-		if ok {
-			fmt.Println("sendMsg >>> userID: ", req.UserId, "  msg:", string(req.Msg))
-			node.DataQueue <- req.Msg
-		}
-	}
-	var key string
-	if req.UserId > jsonMsg.UserId {
-		key = "msg_" + userIdStr + "_" + targetIdStr
-	} else {
-		key = "msg_" + targetIdStr + "_" + userIdStr
+	if len(req.Msg) == 0 || string(req.Msg) == "{}" || string(req.Msg) == "[]" {
+		fmt.Println("SendMsg: empty msg, skip")
+		return resp, nil
 	}
 
-	res, err := global.Rdb.ZRevRange(ctx, key, 0, -1).Result()
+	rwLocker.RLock()
+	clean := strings.Trim(req.UserId, `"`)
+	targetID, _ := strconv.ParseInt(clean, 10, 64)
+	node, ok := clientMap[targetID]
+	rwLocker.RUnlock()
+
+	jsonMsg := model.Message{}
+	if err := json.Unmarshal(req.Msg, &jsonMsg); err != nil {
+		fmt.Println("SendMsg: invalid JSON", err)
+		return resp, nil
+	}
+
+	if jsonMsg.UserId == "" {
+		fmt.Println("SendMsg: missing UserId in msg")
+		return resp, nil
+	}
+
+	ctx := context.Background()
+	targetIdStr := req.UserId
+	userIdStr := jsonMsg.UserId
+	jsonMsg.CreateTime = uint64(time.Now().Unix())
+
+	// 如果目标用户在线，推送
+	if _, err := global.Rdb.Get(ctx, "online_"+userIdStr).Result(); err == nil && ok {
+		fmt.Printf("[SendMsg] target=%s, sender=%s, msg=%s\n", targetIdStr, userIdStr, string(req.Msg))
+		node.DataQueue <- req.Msg
+	}
+
+	// 构造 Redis key
+	var key string
+	if userIdStr > targetIdStr {
+		key = "msg_" + targetIdStr + "_" + userIdStr
+	} else {
+		key = "msg_" + userIdStr + "_" + targetIdStr
+	}
+
+	// 存 Redis
+	res, err := global.Rdb.ZAdd(ctx, key, redis.Z{
+		Score:  float64(time.Now().Unix()),
+		Member: string(req.Msg),
+	}).Result()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("ZAdd error:", err)
+	} else {
+		fmt.Println("ZAdd success:", res)
 	}
-	score := float64(cap(res)) + 1
-	ress, e := global.Rdb.ZAdd(ctx, key, redis.Z{Score: score, Member: string(req.Msg)}).Result()
-	//res, e := utils.Red.Do(ctx, "zadd", key, 1, jsonMsg).Result() //备用 后续拓展 记录完整msg
-	if e != nil {
-		fmt.Println(e)
-	}
-	fmt.Println(ress)
+
 	return resp, nil
 }
 
@@ -284,8 +349,8 @@ func (l *ChatLogic) RedisMsg(ctx context.Context, req types.RedisMsgRequest) (re
 	rwLocker.RLock()
 	rwLocker.RUnlock()
 	ctx = context.Background()
-	userIdStr := strconv.Itoa(int(req.UserIdA))
-	targetIdStr := strconv.Itoa(int(req.UserIdB))
+	userIdStr := req.UserIdA
+	targetIdStr := req.UserIdB
 	var key string
 	if req.UserIdA > req.UserIdB {
 		key = "msg_" + targetIdStr + "_" + userIdStr
@@ -315,42 +380,6 @@ func (l *ChatLogic) RedisMsg(ctx context.Context, req types.RedisMsgRequest) (re
 	return resp, nil
 }
 
-//// 更新用户心跳
-//func (node *model.Node) Heartbeat(currentTime uint64) {
-//	node.HeartbeatTime = currentTime
-//	return
-//}
-
-//// 清理超时连接
-//func CleanConnection(param interface{}) (result bool) {
-//	result = true
-//	defer func() {
-//		if r := recover(); r != nil {
-//			fmt.Println("cleanConnection err", r)
-//		}
-//	}()
-//	//fmt.Println("定时任务,清理超时连接 ", param)
-//	//node.IsHeartbeatTimeOut()
-//	currentTime := uint64(time.Now().Unix())
-//	for i := range clientMap {
-//		node := clientMap[i]
-//		if node.IsHeartbeatTimeOut(currentTime) {
-//			fmt.Println("心跳超时..... 关闭连接：", node)
-//			node.Conn.Close()
-//		}
-//	}
-//	return result
-//}
-//
-//// 用户心跳是否超时
-//func (node *model.Node) IsHeartbeatTimeOut(currentTime uint64) (timeout bool) {
-//	if node.HeartbeatTime+viper.GetUint64("timeout.HeartbeatMaxTime") <= currentTime {
-//		fmt.Println("心跳超时。。。自动下线", node)
-//		timeout = true
-//	}
-//	return
-//}
-
 func (l *ChatLogic) GetUserList() ([]map[string]interface{}, error) {
 	var users []model.User
 	if err := request.NewChatRequest(global.DB).SearchUsers(&users); err != nil {
@@ -363,7 +392,7 @@ func (l *ChatLogic) GetUserList() ([]map[string]interface{}, error) {
 	result := make([]map[string]interface{}, 0, len(users))
 	for _, user := range users {
 		result = append(result, map[string]interface{}{
-			"id":     user.ID,
+			"id":     strconv.FormatInt(user.ID, 10),
 			"name":   user.Username,
 			"avatar": user.Avatar,
 		})

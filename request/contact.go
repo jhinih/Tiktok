@@ -92,15 +92,15 @@ func (r *ContactRequest) IsFriend(UserId, TargetID int64) (model.Contact, error)
 	return contact, err
 }
 
-// 搜索我的群聊
-func (r *ContactRequest) SearchUserByGroupId(communityId int64) []model.Contact {
-	contacts := make([]model.Contact, 0)
-	r.DB.Where("target_id = ? and type=2", communityId).Find(&contacts)
-	return contacts
-}
-
 // 创建群聊
 func (r *ContactRequest) CreatCommunity(contact model.Contact) error {
 	err := r.DB.Create(&contact).Error
 	return err
 }
+
+//// 群是否被拥有
+//func (r *ContactRequest) SearchUserByGroupId(communityId int64) []model.Contact {
+//	contacts := make([]model.Contact, 0)
+//	r.DB.Where("target_id = ? and type=2", communityId).Find(&contacts)
+//	return contacts
+//}
